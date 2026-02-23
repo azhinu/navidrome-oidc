@@ -94,6 +94,12 @@ body {
   font-weight: 500;
 }
 
+.status {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -132,6 +138,8 @@ body {
   color: var(--accent-text);
   cursor: pointer;
   transition: opacity 0.2s ease;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .action[disabled] {
@@ -142,6 +150,16 @@ body {
 .action.success {
   background: transparent;
   color: var(--accent);
+}
+
+.action.error {
+  background: var(--error-text);
+  border-color: var(--error-text);
+  color: #fff;
+}
+
+.card[data-state="completed"] .field {
+  display: none;
 }
 
 .hint {

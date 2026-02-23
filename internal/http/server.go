@@ -247,11 +247,11 @@ func (s *Server) handleNavError(w http.ResponseWriter, r *http.Request, err erro
 	if errors.As(err, &ndErr) {
 		switch ndErr.Kind {
 		case navidrome.ErrorAccessDenied:
-			s.respondError(w, r, http.StatusBadGateway, "navidrome_access", "Проблема с доступом. Обратитесь к администратору.")
+			s.respondError(w, r, http.StatusBadGateway, "navidrome_access", "Navidrome denied access. Check your API key and permissions.")
 		case navidrome.ErrorUnavailable:
-			s.respondError(w, r, http.StatusServiceUnavailable, "navidrome_unavailable", "Что-то пошло не так. Попробуйте позже.")
+			s.respondError(w, r, http.StatusServiceUnavailable, "navidrome_unavailable", "Navidrome is unavailable ¯\\_(ツ)_/¯")
 		default:
-			s.respondError(w, r, http.StatusBadGateway, "navidrome_failed", "Не удалось выполнить операцию. Обратитесь к администратору.")
+			s.respondError(w, r, http.StatusBadGateway, "navidrome_failed", "Something went wrong..")
 		}
 		return
 	}
