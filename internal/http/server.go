@@ -10,8 +10,10 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
@@ -62,6 +64,7 @@ func New(cfg *config.Config, logger *logrus.Logger, oidcMgr *oidc.Manager, ndCli
 	s.staticFS = http.FileServer(http.FS(sub))
 
 	s.router.Use(s.requestIDMiddleware)
+	s.router.Use(middleware.Recoverer)
 	s.router.Use(s.loggingMiddleware)
 	s.router.Use(s.bodyLimitMiddleware)
 
@@ -71,7 +74,7 @@ func New(cfg *config.Config, logger *logrus.Logger, oidcMgr *oidc.Manager, ndCli
 
 func (s *Server) routes() {
 	if s.basePath != "" {
-		s.router.Get(s.basePath, func(w http.ResponseWriter, r *http.Request) {
+		s.router.HandleFunc(s.basePath, func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, s.basePath+"/", http.StatusFound)
 		})
 	}
@@ -119,7 +122,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	if _, err := s.oidc.CompleteAuth(r.Context(), w, r); err != nil {
 		s.logger.WithError(err).Error("OIDC callback failed")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.respondError(w, r, http.StatusBadRequest, "oidc_callback_failed", "OIDC callback failed")
 		return
 	}
 	http.Redirect(w, r, s.url("/"), http.StatusFound)
@@ -278,6 +281,22 @@ func validatePassword(pw string) error {
 	length := len(pw)
 	if length < 6 || length > 256 {
 		return errors.New("Password must be between 6 and 256 characters")
+	}
+
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range pw {
+		switch {
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+
+	if !hasUpper || !hasLower || !hasDigit {
+		return errors.New("Password must include upper-case, lower-case, and numeric characters")
 	}
 	return nil
 }

@@ -190,10 +190,9 @@ func (m *Manager) CompleteAuth(ctx context.Context, w http.ResponseWriter, r *ht
 		Picture string `json:"picture"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
-		m.logger.WithField("claims", claims).WithError(err).Warn("ID Token Claims Decode Failed")
+		m.logger.WithError(err).Warn("ID token claims decode failed")
 		return nil, fmt.Errorf("Decode claims: %w", err)
 	}
-	m.logger.WithField("claims", claims).Info("ID Token Claims")
 
 	if claims.Email == "" {
 		return nil, errors.New("Email was not provided by the identity provider, ask your administrator")
