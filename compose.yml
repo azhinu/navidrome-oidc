@@ -1,0 +1,25 @@
+services:
+  nd-credential-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nd-credential-portal
+    restart: unless-stopped
+    environment:
+      ND_CP_BASE_URL: "https://auth.example.com"
+      ND_CP_GOTO: "https://music.example.com"
+      ND_CP_SESSION_KEY: "replace_with_at_least_32_bytes_session_secret_key"
+      ND_CP_OIDC_ISSUER: "https://id.example.com"
+      ND_CP_OIDC_CLIENT_ID: "navidrome-portal"
+      ND_CP_OIDC_CLIENT_SECRET: "replace_with_oidc_client_secret"
+      ND_CP_ND_BASE_URL: "https://navidrome.example.com"
+      ND_CP_ADMIN_USER: "service"
+      ND_CP_ADMIN_PASS: "replace_with_navidrome_admin_password"
+    ports:
+      - "8386:8386"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8386/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
