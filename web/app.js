@@ -2,13 +2,12 @@ const card = document.querySelector('.card');
 const nameEl = document.querySelector('[data-name]');
 const emailEl = document.querySelector('[data-email]');
 const avatarEl = document.querySelector('[data-avatar]');
-const errorEl = document.querySelector('[data-error]');
 const statusEl = document.querySelector('[data-status]');
 const form = document.querySelector('.form');
 const passwordInput = form.querySelector('input[name="password"]');
 const actionBtn = document.querySelector('[data-action]');
-const errorMessagee = "Something went wrong. Please try again later, or ask administrator.";
 
+const defaultErrorMessage = 'Something went wrong. Try again later.';
 
 const state = {
   exists: false,
@@ -44,18 +43,18 @@ passwordInput.addEventListener('input', () => {
 
 async function loadProfile() {
   setLoading(true);
-  hideError();
   hideStatus();
+  clearSubmitError();
   try {
     const res = await fetch('api/me', { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to load profile');
+    if (!res.ok) throw new Error(defaultErrorMessage);
     const data = await res.json();
     state.exists = Boolean(data.exists);
     state.goto = data.nextUrl;
     renderUser(data);
     renderAction();
   } catch (err) {
-    showError(errorMessagee);
+    showSubmitError(err?.message || defaultErrorMessage);
   } finally {
     setLoading(false);
   }
@@ -67,8 +66,8 @@ async function submitPassword(password) {
     return;
   }
   setLoading(true);
-  hideError();
   hideStatus();
+  clearSubmitError();
   try {
     const res = await fetch('api/password', {
       method: 'POST',
@@ -76,21 +75,24 @@ async function submitPassword(password) {
       credentials: 'include',
       body: JSON.stringify({ password }),
     });
+
     let data = null;
     try {
       data = await res.json();
     } catch {
       data = null;
     }
+
     if (!res.ok) {
-      const message = data?.error?.message || errorMessagee;
+      const message = data?.error?.message || defaultErrorMessage;
       throw new Error(message);
     }
+
     state.completed = true;
     state.goto = data.nextUrl;
     renderSuccess(data.action === 'updated');
   } catch (err) {
-    showSubmitError(err?.message || errorMessagee);
+    showSubmitError(err?.message || defaultErrorMessage);
   } finally {
     setLoading(false);
   }
@@ -101,9 +103,11 @@ function renderUser(data) {
   nameEl.textContent = `Hi, ${name}`;
   emailEl.textContent = data.email;
   if (data.picture) {
+    avatarEl.setAttribute('data-has-image', 'true');
     avatarEl.style.backgroundImage = `url(${data.picture})`;
     avatarEl.textContent = '';
   } else {
+    avatarEl.removeAttribute('data-has-image');
     avatarEl.style.backgroundImage = 'none';
     avatarEl.textContent = name.charAt(0).toUpperCase();
   }
@@ -111,15 +115,12 @@ function renderUser(data) {
 
 function renderAction() {
   state.completed = false;
-  actionBtn.classList.remove('success');
   actionBtn.classList.remove('error');
-  actionBtn.textContent = state.exists ? 'Update password' : 'Create Navidrome account';
-  hideStatus();
+  actionBtn.textContent = state.exists ? 'Change password' : 'Sign-up';
   card.setAttribute('data-state', 'ready');
 }
 
 function renderSuccess(updated) {
-  actionBtn.classList.add('success');
   actionBtn.classList.remove('error');
   actionBtn.textContent = 'Go to Navidrome';
   passwordInput.value = '';
@@ -134,28 +135,22 @@ function setLoading(isLoading) {
   if (isLoading) {
     actionBtn.setAttribute('disabled', 'true');
     card.setAttribute('data-state', 'loading');
-  } else if (!state.completed) {
-    actionBtn.removeAttribute('disabled');
+    if (!state.completed) {
+      actionBtn.textContent = 'Loading…';
+    }
+    return;
+  }
+
+  actionBtn.removeAttribute('disabled');
+  if (!state.completed) {
     card.setAttribute('data-state', 'ready');
-  } else {
-    actionBtn.removeAttribute('disabled');
   }
 }
 
-function showError(message) {
-  if (!message) return;
-  errorEl.textContent = normalizeMessage(message);
-  errorEl.hidden = false;
-}
-
-function hideError() {
-  errorEl.hidden = true;
-  errorEl.textContent = '';
-}
-
 function showStatus(message) {
-  if (!message) return;
-  statusEl.textContent = message;
+  const text = String(message ?? '').trim();
+  if (!text) return;
+  statusEl.textContent = text;
   statusEl.hidden = false;
 }
 
@@ -168,14 +163,13 @@ function showSubmitError(message) {
   const normalized = normalizeMessage(message);
   if (!normalized) return;
   actionBtn.classList.add('error');
-  actionBtn.classList.remove('success');
   actionBtn.textContent = normalized;
 }
 
 function clearSubmitError() {
   if (state.completed) return;
   actionBtn.classList.remove('error');
-  actionBtn.textContent = state.exists ? 'Update password' : 'Create Navidrome account';
+  actionBtn.textContent = state.exists ? 'Change password' : 'Sign-up';
 }
 
 function normalizeMessage(message) {
