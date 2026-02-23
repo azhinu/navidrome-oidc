@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/app ./cmd/app
 
-FROM alpine:3.20
+FROM alpine:latest
 
 RUN addgroup -S app && adduser -S -G app app \
 	&& apk add --no-cache ca-certificates tzdata
